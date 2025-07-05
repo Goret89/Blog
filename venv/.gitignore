@@ -1,0 +1,24 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+*.pot
+*.pyc
+db.sqlite3
+
+# Virtual environments
+venv/
+env/
+ENV/
+*.venv
+
+# VS Code
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
