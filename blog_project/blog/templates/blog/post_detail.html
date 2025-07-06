@@ -20,13 +20,37 @@
         <!--<div>{{ post.content }}</div>-->
         <div class="mb-3">{{ post.get_markdown|safe }}</div>
 
-        <!-- Likes -->
-        
+        <!-- Likes --> 
         <form action="{% url 'toggle_like' post.id %}" method="post">
             {% csrf_token %}
-            <button type="submit" name="like_submit" class="btn btn-sm btn-outline-primary">
-                {% if is_liked %}💙{% else %}🤍{% endif %} {{ total_likes}} likes
+            <button id="like-btn" class="btn btn-sm btn-outline-primary"
+                    data-post-id="{{ post.id }}" data-liked="{{ is_liked|yesno:"yes,no" }}">
+                {% if is_liked %}💙{% else %}🤍{% endif %} <span id="like-count"> {{ total_likes}} likes
             </button>
+
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const likeBtn = document.getElementById('like-btn');
+                likeBtn.addEventListener('click', function() {
+                    const postId = this.dataset.postId;
+                    const csrftoken = '{{ csrf_token }}';
+
+                    fetch('/post/${postId}/like/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrftoken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const icon = data.is_liked ? '💙': '🤍';
+                        document.getElementById('like-btn').innerHTML = '${icon} <span id="like-count">${data.total_likes}</span> likes';
+                    })
+                    .catch(error => console.error('Error:', error));
+                });
+            });
+            </script>
         </form>
 
         <br>

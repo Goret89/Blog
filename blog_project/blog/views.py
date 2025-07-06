@@ -6,6 +6,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from .forms import CommentForm
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 
 # Create your views here.
 def post_list(request):
@@ -113,8 +114,18 @@ def edit_comment(request, comment_id):
 @login_required
 def toggle_like(request, post_id):
     post = get_object_or_404(Post, id=post_id)
+    is_liked = False
+
     if request.user in post.likes.all():
         post.likes.remove(request.user)
     else:
         post.likes.add(request.user)
+        is_liked = True
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'is_liked': is_liked,
+            'total_likes': post.likes.count()
+        })
+
     return redirect('post_detail', post_id=post.id)
