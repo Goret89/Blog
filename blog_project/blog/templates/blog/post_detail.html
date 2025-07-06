@@ -76,7 +76,7 @@
             {% for comment in comments %}
             <li class="list-group-item">
                 <strong>{{ comment.author }}</strong> - {{ comment.created_at }}
-                <div class="mb-2">{{ comment.get_markdown }}</div>
+                <div class="markdown-body mb-2">{{ comment.get_markdown }}</div>
 
                 {% if user == comment.author %}
                     <a href="{% url 'edit_comment' comment.id %}">Edit</a> |
