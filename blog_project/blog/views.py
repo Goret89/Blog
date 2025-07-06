@@ -112,6 +112,15 @@ def edit_comment(request, comment_id):
     return render(request, 'blog/edit_comment.html', {'form': form})
 
 @login_required
+def delete_comment(request, comment_id):
+    comment = get_object_or_404(Comment, id=comment_id)
+    if request.user == comment.author:
+        post_id = comment.post.id
+        comment.delete()
+        return redirect('post_detail', post_id=post_id)
+    return redirect('post_list')
+
+@login_required
 def toggle_like(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     is_liked = False
