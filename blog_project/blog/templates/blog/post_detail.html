@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html>
-    {% if user == post.author %}
-        <a href="{% url 'edit_post' post.id %}" class="btn btn-warning">✏️ Edit</a>
-        <a href="{% url 'delete_post' post.id %}" class="btn btn-danger">🗑️ Delete</a>
-    {% endif %}
-    <head><title>{{ post.title }}</title></head>
+    <head>
+        <title>{{ post.title }}</title>
+        {% load avatar_tags %}
+    </head>
 
     <body>
-        {% load avatar_tags %}
+        <!-- Post managing -->
+        {% if user == post.author %}
+            <a href="{% url 'edit_post' post.id %}" class="btn btn-warning">✏️ Edit</a>
+            <a href="{% url 'delete_post' post.id %}" class="btn btn-danger">🗑️ Delete</a>
+        {% endif %}
+
+        <!-- Use (avatar and name) -->
         {% if user.is_authenticated %}
             <div class="d-flex align-items-center mb-2">
                 {% avatar user size=40 %}
@@ -15,23 +20,26 @@
             </div>
         {% endif %}
 
+        <!-- Title and info -->
         <h1>{{ post.title }}</h1>
         <p class="text-muted">Author: {{post.author}} | {{ post.created_at }}</p>
-        <!--<div>{{ post.content }}</div>-->
-        <div class="mb-3">{{ post.get_markdown|safe }}</div>
 
         <!-- Likes --> 
         <form action="{% url 'toggle_like' post.id %}" method="post">
             {% csrf_token %}
             <button id="like-btn" class="btn btn-sm btn-outline-primary"
                     data-post-id="{{ post.id }}" data-liked="{{ is_liked|yesno:"yes,no" }}">
-                {% if is_liked %}💙{% else %}🤍{% endif %} <span id="like-count"> {{ total_likes}} likes
+                {% if is_liked %}💙{% else %}🤍{% endif %}
+                <span id="like-count"> {{ total_likes}}</span> likes
             </button>
+        </form>
 
-            <script>
+        <!-- JS for updating Likes -->
+        <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const likeBtn = document.getElementById('like-btn');
-                likeBtn.addEventListener('click', function() {
+                likeBtn.addEventListener('click', function (e) {
+                    e.preventDefault(); // prevent the form sending
                     const postId = this.dataset.postId;
                     const csrftoken = '{{ csrf_token }}';
 
@@ -45,16 +53,19 @@
                     .then(response => response.json())
                     .then(data => {
                         const icon = data.is_liked ? '💙': '🤍';
-                        document.getElementById('like-btn').innerHTML = '${icon} <span id="like-count">${data.total_likes}</span> likes';
+                        document.getElementById('like-btn').innerHTML =
+                            '${icon} <span id="like-count">${data.total_likes}</span> likes';
                     })
                     .catch(error => console.error('Error:', error));
                 });
             });
-            </script>
-        </form>
+        </script>
 
-        <br>
-        <a href="{% url 'post_list' %}">← Назад</a>
+        <!-- The post content -->
+        <div class="mb-3">{{ post.get_markdown|safe }}</div>
+
+        <!-- Back -->
+        <a href="{% url 'post_list' %}">← Back</a>
 
         <hr>
 
@@ -87,5 +98,6 @@
         {% else %}
             <p><a href="{% url 'login' %}">Enter</a> to leave a comment</p>
         {% endif %}
+
     </body>
 </html>
