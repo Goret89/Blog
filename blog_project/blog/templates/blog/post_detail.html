@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
+
         <title>{{ post.title }}</title>
         {% load avatar_tags %}
     </head>
@@ -60,7 +62,7 @@
         </script>
 
         <!-- The post content -->
-        <div class="mb-3">{{ post.get_markdown|safe }}</div>
+        <div class="markdown-body mb-3">{{ post.get_markdown }}</div>
 
         <!-- Back -->
         <a href="{% url 'post_list' %}">← Back</a>
@@ -74,7 +76,7 @@
             {% for comment in comments %}
             <li class="list-group-item">
                 <strong>{{ comment.author }}</strong> - {{ comment.created_at }}
-                <p>{{ comment.content }}</p>
+                <div class="mb-2">{{ comment.get_markdown }}</div>
 
                 {% if user == comment.author %}
                     <a href="{% url 'edit_comment' comment.id %}">Edit</a> |
