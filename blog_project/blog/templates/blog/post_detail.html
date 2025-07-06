@@ -25,25 +25,24 @@
         <p class="text-muted">Author: {{post.author}} | {{ post.created_at }}</p>
 
         <!-- Likes --> 
-        <form action="{% url 'toggle_like' post.id %}" method="post">
-            {% csrf_token %}
-            <button id="like-btn" class="btn btn-sm btn-outline-primary"
-                    data-post-id="{{ post.id }}" data-liked="{{ is_liked|yesno:"yes,no" }}">
-                {% if is_liked %}💙{% else %}🤍{% endif %}
-                <span id="like-count"> {{ total_likes}}</span> likes
-            </button>
-        </form>
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+        <button id="like-btn" class="btn btn-sm btn-outline-primary"
+                data-post-id="{{ post.id }}" data-liked="{{ is_liked|yesno:"yes,no" }}">
+            {% if is_liked %}💙{% else %}🤍{% endif %}
+            <span id="like-count"> {{ total_likes}}</span> likes
+        </button>
 
         <!-- JS for updating Likes -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const likeBtn = document.getElementById('like-btn');
+
                 likeBtn.addEventListener('click', function (e) {
                     e.preventDefault(); // prevent the form sending
                     const postId = this.dataset.postId;
-                    const csrftoken = '{{ csrf_token }}';
+                    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-                    fetch('/post/${postId}/like/', {
+                    fetch(`/post/${postId}/like/`, {
                         method: 'POST',
                         headers: {
                             'X-CSRFToken': csrftoken,
@@ -53,8 +52,7 @@
                     .then(response => response.json())
                     .then(data => {
                         const icon = data.is_liked ? '💙': '🤍';
-                        document.getElementById('like-btn').innerHTML =
-                            '${icon} <span id="like-count">${data.total_likes}</span> likes';
+                        likeBtn.innerHTML = `${icon} <span id="like-count">${data.total_likes}</span> likes`;
                     })
                     .catch(error => console.error('Error:', error));
                 });
