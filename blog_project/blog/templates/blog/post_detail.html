@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
     <head>
+        {% load static %}
+        <link rel="stylesheet" href="{% static 'blog/styles.css' %}">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
 
         <title>{{ post.title }}</title>
@@ -26,39 +28,74 @@
         <h1>{{ post.title }}</h1>
         <p class="text-muted">Author: {{post.author}} | {{ post.created_at }}</p>
 
-        <!-- Likes --> 
         <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-        <button id="like-btn" class="btn btn-sm btn-outline-primary"
-                data-post-id="{{ post.id }}" data-liked="{{ is_liked|yesno:"yes,no" }}">
-            {% if is_liked %}💙{% else %}🤍{% endif %}
-            <span id="like-count"> {{ total_likes}}</span> likes
+
+        <!-- Likes --> 
+        
+        <button class="btn btn-sm vote-btn"
+                id="like-btn-{{ post.id }}"
+                data-post-id="{{ post.id }}"
+                data-value="1">
+            👍
+            <span id="likes-{{ post.id }}"> {{ post.likes_count}}</span>
         </button>
+
+        <button class="btn btn-sm vote-btn"
+                id="dislike-btn-{{ post.id }}"
+                data-post-id="{{ post.id }}"
+                data-value="-1">
+            👎
+            <span id="dislikes-{{ post.id }}">{{ post.dislikes_count }}</span>
+        </button>    
 
         <!-- JS for updating Likes -->
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const likeBtn = document.getElementById('like-btn');
-
-                likeBtn.addEventListener('click', function (e) {
-                    e.preventDefault(); // prevent the form sending
+            document.querySelectorAll('.vote-btn').forEach(button => {
+                button.addEventListener('click', function () {      
                     const postId = this.dataset.postId;
-                    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    const value = parseInt(this.dataset.value);
 
-                    fetch(`/post/${postId}/like/`, {
+                    const likeBtn = document.getElementById(`like-btn-${postId}`);
+                    const dislikeBtn = document.getElementById(`dislike-btn-${postId}`);
+
+                    fetch(`/vote/${postId}/`, {
                         method: 'POST',
                         headers: {
-                            'X-CSRFToken': csrftoken,
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `value=${value}`
                     })
                     .then(response => response.json())
                     .then(data => {
-                        const icon = data.is_liked ? '💙': '🤍';
-                        likeBtn.innerHTML = `${icon} <span id="like-count">${data.total_likes}</span> likes`;
-                    })
-                    .catch(error => console.error('Error:', error));
+                        document.getElementById(`likes-${postId}`).innerText = data.likes;
+                        document.getElementById(`dislikes-${postId}`).innerText = data.dislikes;
+
+                        likeBtn.classList.remove('active-like');
+                        dislikeBtn.classList.remove('active-dislike');
+
+                        if (data.user_vote === 1) {
+                            likeBtn.classList.add('active-like');
+                        } else if (data.user_vote === -1) {
+                            dislikeBtn.classList.add('active-dislike');
+                        }
+                    });
                 });
             });
+
+            // CSRF helper
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    document.cookie.split(';').forEach(cookie => {
+                        cookie = cookie.trim();
+                        if (cookie.startsWith(name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        }
+                    });
+                }
+                return cookieValue;
+            }
         </script>
 
         <!-- The post content -->
