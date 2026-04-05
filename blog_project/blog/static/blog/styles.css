@@ -1,0 +1,16 @@
+.vote-btn {
+    border: 1px solid #ccc;
+    background: white;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+.vote-btn.active-like {
+    background: #0d6efd;
+    color: white;
+}
+
+.vote-btn.active-dislike {
+    background: #dc3545;
+    color: white;
+}
