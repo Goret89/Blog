@@ -8,20 +8,41 @@
 <body class="container mt-4">
     <h1 class="mb-4">Список постов</h1>
     <a href="{% url 'create_post' %}" class="btn btn-success mb-3">➕ New post</a>
+
+    <form method="get" class="mb-3">
+        <input type="text" name="q" placeholder="Search..." value="{{ request.GET.q }}">
+
+        <input type="text" name="author" placeholder="Author" value="{{ request.GET.author }}" >
+
+        <select name="sort">
+            <option value="">Newest</option>
+            <option value="popular"
+                {% if request.GET.sort == "popular" %}selected{% endif %}>
+                Most popular
+            </option>
+        </select>
+
+        <button type="submit" class="btn btn-primary">Apply</button>
+    </form>
+
     <ul class="list-group">
         {% for post in posts %}
             <li class="list-group-item">
                 <a href="{% url 'post_detail' post.id %}">{{ post.title }}</a><br>
-                <small class="text-muted">{{ post.create_at }}</small>
+                <small class="text-muted">{{ post.created_at }}</small>
+                <p>👍 {{ post.likes }}</p>
             </li>
         {% endfor %}
     </ul>
 
     <nav>
         <ul class="pagination">
-            {% if post.has_previous %}
+            {% if posts.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ posts.previous_page_number }}">← Back</a>
+                    <a class="page-link"
+                        href="?page={{ posts.previous_page_number }}&q={{ request.GET.q }}&author={{ request.GET.author }}&sort={{ request.GET.sort }}">
+                        ← Back
+                    </a>
                 </li>
             {% endif %}
 
@@ -33,7 +54,10 @@
 
             {% if posts.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ posts.next_page_number }}">Forward →</a>
+                    <a class="page-link"
+                        href="?page={{ posts.next_page_number }}&q={{ request.GET.q }}&author={{ request.GET.author }}&sort={{ request.GET.sort }}">
+                        Forward →
+                    </a>
                 </li>
             {% endif %}
         </ul>
