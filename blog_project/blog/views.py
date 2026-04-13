@@ -8,13 +8,34 @@ from .forms import CommentForm
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.http import HttpResponseForbidden
+from django.db.models import Count, Q
 
 
 # Create your views here.
 def post_list(request):
-    post_list = Post.objects.all().order_by('-created_at')
-    paginator = Paginator(post_list, 5)  # 5 posts per page
+    posts = Post.objects.all()
 
+    query = request.GET.get('q')
+    if query:
+        posts = posts.filter(
+            Q(title__icontains=query) |
+            Q(content__icontains=query)
+        )
+
+    author = request.GET.get('author')
+    if author:
+        posts = posts.filter(author__username__icontains=author)
+
+    posts = posts.annotate(likes=Count('votes', filter=Q(votes__value=1)))
+
+    sort = request.GET.get('sort')
+
+    if sort == 'popular':
+        posts = posts.order_by('-likes')
+    else:
+        posts = posts.order_by('-created_at')
+
+    paginator = Paginator(posts, 5)  # 5 posts per page
     page_number = request.GET.get('page')
     posts = paginator.get_page(page_number)
 
