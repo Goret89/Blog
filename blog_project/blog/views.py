@@ -26,6 +26,10 @@ def post_list(request):
     if author:
         posts = posts.filter(author__username__icontains=author)
 
+    tag = request.GET.get('tag')
+    if tag:
+        posts = posts.filter(tags__name=tag)
+
     posts = posts.annotate(likes=Count('votes', filter=Q(votes__value=1)))
 
     sort = request.GET.get('sort')
@@ -98,6 +102,7 @@ def create_post(request):
             post = form.save(commit=False)  # don't save object immediately to the DB
             post.author = request.user      # assign the author
             post.save()                     # saving
+            form.save_m2m()
             return redirect('post_list')
     else:
         form = PostForm()
