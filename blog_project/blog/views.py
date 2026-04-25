@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Post, Comment, Vote
+from .models import Post, Comment, Vote, Profile
 from .forms import PostForm
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
@@ -222,4 +223,15 @@ def vote_view(request, post_id):
         'likes': post.likes_count(),
         'dislikes': post.dislikes_count(),
         'user_vote': user_vote
+    })
+
+def profile_view(request, username):
+    user = get_object_or_404(User, username=username)
+    profile, created = Profile.objects.get_or_create(user=user)
+    posts = Post.objects.filter(author=user).order_by('-created_at')
+
+    return render(request, 'blog/profile.html', {
+        'profile_user': user,
+        'profile': profile,
+        'posts': posts
     })
