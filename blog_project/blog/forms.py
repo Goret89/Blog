@@ -1,6 +1,6 @@
 from django import forms
 from .models import Post
-from .models import Comment
+from .models import Comment, Profile
 
 
 class PostForm(forms.ModelForm):
@@ -17,3 +17,9 @@ class CommentForm(forms.ModelForm):
         widgets = {
             'content': forms.Textarea(attrs={'rows':3, 'class': 'form-control', 'placeholder': 'Leave a comment...'})
         }
+
+
+class ProfileForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['bio', 'avatar']
