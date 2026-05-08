@@ -1,0 +1,30 @@
+{% load avatar_tags %}
+
+<h2>{{ profile_user.username }}</h2>
+
+{% avatar profile_user size=120 %}
+
+<p>{{ profile.bio }}</p>
+
+<p>Joined: {{ profile_user.date_joined }}</p>
+
+{% if request.user == profile_user %}
+    <p>
+        <a href="/avatar/change/" class="btn btn-primary">Change avatar</a>
+        <a href="{% url 'edit_profile' %}" class="btn btn-secondary">Edit bio</a>
+    </p>
+{% endif %}
+
+<h3>Posts:</h3>
+
+<ul>
+    {% for post in posts %}
+        <li>
+            <a href="{% url 'post_detail' post.id %}">
+                {{ post.title }}
+            </a>
+        </li>
+    {% empty %}
+        <li>No posts yet</li>
+    {% endfor %}
+</ul>

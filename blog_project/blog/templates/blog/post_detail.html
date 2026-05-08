@@ -18,15 +18,19 @@
 
         <!-- Use (avatar and name) -->
         {% if user.is_authenticated %}
-            <div class="d-flex align-items-center mb-2">
-                {% avatar user size=40 %}
-                <span class="ms-2" >{{ user.username }}</span>
+            <div class="mb-2">
+                <a href="{% url 'profile' post.author.username %}" class="d-flex align-items-center text-decoration-none text-dark">
+                    {% avatar post.author size=40 %}
+                    <span class="ms-2" >{{ post.author.username }}</span>
+                </a>
             </div>
         {% endif %}
 
         <!-- Title and info -->
         <h1>{{ post.title }}</h1>
-        <p class="text-muted">Author: {{post.author}} | {{ post.created_at }}</p>
+        <p class="text-muted">
+            {{ post.created_at }}
+        </p>
 
         <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 
