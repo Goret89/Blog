@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Edit profile</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+
+    <body class="container mt-4">
+        <h2>Edit profile</h2>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+
+        <p>
+            <a href="/avatar/change/">Change avatar</a>
+        </p>
+
+        <p>
+            <a href="{% url 'profile' request.user.username %}">
+                Back to profile
+            </a>
+        </p>
+    </body>
+</html>
