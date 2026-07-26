@@ -6,23 +6,46 @@
     </head>
 
     <body class="container mt-4">
-        <h2>Edit profile</h2>
+        <h2 class="mb-4">Edit profile</h2>
 
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" class="card p-4 shadow-sm">
             {% csrf_token %}
-            {{ form.as_p }}
 
-            <button type="submit" class="btn btn-primary">Save</button>
+            <!-- BIO-->
+            <div class="mb-3">
+                <label for="id_bio" class="form-label">About you</label>
+
+                <textarea name="bio" id="id_bio" rows="4" class="form-control {% if form.bio.errors %}is-invalid{% endif %}" placeholder="Tell something about yourself...">
+                    {{ form.bio.value|default_if_none:'' }}
+                </textarea>
+
+                {% if form.bio.errors %}
+                    <div class="invalid-feedback">
+                        {{ form.bio.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- BUTTONS -->
+             <div class="d-flex justify-content-between">
+                <a href="{% url 'profile' request.user.username %}" class="btn btn-outline-secondary">
+                    ← Back
+                </a>
+
+                <button type="submit" class="btn btn-primary">
+                    Save
+                </button>
+             </div>
+
         </form>
 
-        <p>
-            <a href="/avatar/change/">Change avatar</a>
-        </p>
-
-        <p>
-            <a href="{% url 'profile' request.user.username %}">
-                Back to profile
+        <!-- Avatar -->
+        <div class="mt-4">
+            <p class="text-muted">Avatar:</p>
+            <a href="/avatar/change/" class="btn btn-outline-primary">
+                Change avatar
             </a>
-        </p>
+        </div>
+
     </body>
 </html>

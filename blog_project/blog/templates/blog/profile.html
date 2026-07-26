@@ -1,30 +1,44 @@
+{% extends 'blog/base.html' %}
 {% load avatar_tags %}
 
-<h2>{{ profile_user.username }}</h2>
+{% block content %}
 
-{% avatar profile_user size=120 %}
+<div class="card shadow-sm p-4 mb-4">
 
-<p>{{ profile.bio }}</p>
+    <div class="d-flex align-items-center">
+        
+        {% avatar profile_user size=80 %}
 
-<p>Joined: {{ profile_user.date_joined }}</p>
+        <div class="ms-3">
+            <h3>{{ profile_user.username }}</h3>
+            <p class="text-muted mb-1">Joined: {{ profile_user.date_joined }}</p>
 
-{% if request.user == profile_user %}
-    <p>
-        <a href="/avatar/change/" class="btn btn-primary">Change avatar</a>
-        <a href="{% url 'edit_profile' %}" class="btn btn-secondary">Edit bio</a>
-    </p>
-{% endif %}
+            {% if profile.bio %}
+                <p>{{ profile.bio }}</p>
+            {% endif %}
+        </div>
 
-<h3>Posts:</h3>
+    </div>
 
-<ul>
+    {% if request.user == profile_user %}
+        <div class="mt-3">
+            <a href="/avatar/change/" class="btn btn-outline-primary btn-sm">Change avatar</a>
+            <a href="{% url 'edit_profile' %}" class="btn btn-outline-secondary btn-sm">Edit bio</a>
+        </div>
+    {% endif %}
+    
+</div>
+
+<h4>User posts</h4>
+
+<div class="list-group">
     {% for post in posts %}
-        <li>
-            <a href="{% url 'post_detail' post.id %}">
-                {{ post.title }}
-            </a>
-        </li>
+        <a href="{% url 'post_detail' post.id %}" class="list-group-item list-group-item-action">
+            {{ post.title }}
+        </a>
     {% empty %}
-        <li>No posts yet</li>
+        <div class="text-muted">No posts yet</div>
     {% endfor %}
-</ul>
+</div>
+
+{% endblock %}

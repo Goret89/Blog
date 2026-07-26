@@ -1,145 +1,84 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        {% load static %}
-        <link rel="stylesheet" href="{% static 'blog/styles.css' %}">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
+{% extends 'blog/base.html' %}
+{% load avatar_tags %}
 
-        <title>{{ post.title }}</title>
-        {% load avatar_tags %}
-    </head>
+{% block content %}
 
-    <body>
-        <!-- Post managing -->
-        {% if user == post.author %}
-            <a href="{% url 'edit_post' post.id %}" class="btn btn-warning">✏️ Edit</a>
-            <a href="{% url 'delete_post' post.id %}" class="btn btn-danger">🗑️ Delete</a>
-        {% endif %}
+<div class="card shadow-sm p-4">
 
-        <!-- Use (avatar and name) -->
-        {% if user.is_authenticated %}
-            <div class="mb-2">
-                <a href="{% url 'profile' post.author.username %}" class="d-flex align-items-center text-decoration-none text-dark">
-                    {% avatar post.author size=40 %}
-                    <span class="ms-2" >{{ post.author.username }}</span>
-                </a>
-            </div>
-        {% endif %}
+    <!-- Author -->
+    <div class="d-flex align-items-center mb-3">
+        <a href="{% url 'profile' post.author.username %}" class="d-flex align-items-center text-decoration-none text-dark">
+            {% avatar post.author size=40 %}
+            <span class="ms-2">{{ post.author.username }}</span>
+        </a>
+    </div>
 
-        <!-- Title and info -->
-        <h1>{{ post.title }}</h1>
-        <p class="text-muted">
-            {{ post.created_at }}
-        </p>
+    <h2>{{ post.title }}</h2>
+    <p class="text-muted">{{ post.created_at }}</p>
 
-        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+    <!-- Likes --> 
+    <button class="btn btn-sm vote-btn {% if user_vote == 1 %}active-like{% endif %}"
+            id="like-btn-{{ post.id }}"
+            data-post-id="{{ post.id }}"
+            data-value="1">
+        👍
+        <span id="likes-{{ post.id }}"> {{ post.likes_count}}</span>
+    </button>
 
-        <!-- Likes --> 
-        <button class="btn btn-sm vote-btn"
-                id="like-btn-{{ post.id }}"
-                data-post-id="{{ post.id }}"
-                data-value="1">
-            👍
-            <span id="likes-{{ post.id }}"> {{ post.likes_count}}</span>
-        </button>
+    <button class="btn btn-sm vote-btn {% if user_vote == -1 %}active-dislike{% endif %}"
+            id="dislike-btn-{{ post.id }}"
+            data-post-id="{{ post.id }}"
+            data-value="-1">
+        👎
+        <span id="dislikes-{{ post.id }}">{{ post.dislikes_count }}</span>
+    </button>
 
-        <button class="btn btn-sm vote-btn"
-                id="dislike-btn-{{ post.id }}"
-                data-post-id="{{ post.id }}"
-                data-value="-1">
-            👎
-            <span id="dislikes-{{ post.id }}">{{ post.dislikes_count }}</span>
-        </button>    
-
-        <!-- JS for updating Likes -->
-        <script>
-            document.querySelectorAll('.vote-btn').forEach(button => {
-                button.addEventListener('click', function () {      
-                    const postId = this.dataset.postId;
-                    const value = parseInt(this.dataset.value);
-
-                    const likeBtn = document.getElementById(`like-btn-${postId}`);
-                    const dislikeBtn = document.getElementById(`dislike-btn-${postId}`);
-
-                    fetch(`/vote/${postId}/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': getCookie('csrftoken'),
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `value=${value}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById(`likes-${postId}`).innerText = data.likes;
-                        document.getElementById(`dislikes-${postId}`).innerText = data.dislikes;
-
-                        likeBtn.classList.remove('active-like');
-                        dislikeBtn.classList.remove('active-dislike');
-
-                        if (data.user_vote === 1) {
-                            likeBtn.classList.add('active-like');
-                        } else if (data.user_vote === -1) {
-                            dislikeBtn.classList.add('active-dislike');
-                        }
-                    });
-                });
-            });
-
-            // CSRF helper
-            function getCookie(name) {
-                let cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    document.cookie.split(';').forEach(cookie => {
-                        cookie = cookie.trim();
-                        if (cookie.startsWith(name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        }
-                    });
-                }
-                return cookieValue;
-            }
-        </script>
-
-        <!-- The post content -->
-        <div class="markdown-body mb-3">{{ post.get_markdown }}</div>
-
-        <!-- Back -->
-        <a href="{% url 'post_list' %}">← Back</a>
-
-        <hr>
-
-        <!--Comments-->
-        <h4>Comments ({{comments.count}})</h4>
-
-        <ul class="list-group mb-3">
-            {% for comment in comments %}
-            <li class="list-group-item">
-                <strong>{{ comment.author }}</strong> - {{ comment.created_at }}
-                <div class="markdown-body mb-2">{{ comment.get_markdown }}</div>
-
-                {% if user == comment.author %}
-                    <a href="{% url 'edit_comment' comment.id %}">Edit</a> |
-                    <a href="{% url 'delete_comment' comment.id %}" class="text-danger"
-                        onclick="return confirm('Are you sure you want to delete this comment?');">Delete</a>
-                {% endif %}
-            </li>
-        {% empty %}
-            <li class="list-group-item">No comments</li>
+    <div>
+        {% for tag in post.tags.all %}
+            <span class="badge bg-secondary">{{ tag.name }}</span>
         {% endfor %}
-        </ul>
+    </div>
 
-        <!--Add the comment-->
-        {% if user.is_authenticated %}
-            <h5>Add comment</h5>
-            <form method="post" class="mt-4">
-                {% csrf_token %}
-                {{ form.as_p }}
-                <button type="submit" name="comment_submit" class="btn btn-primary">Send</button>
-            </form>
-        {% else %}
-            <p><a href="{% url 'login' %}">Enter</a> to leave a comment</p>
-        {% endif %}
+    <!-- The post content -->
+    <div class="markdown-body mb-3">{{ post.get_markdown }}</div>
 
-    </body>
-</html>
+    <!-- Back -->
+    <a href="{% url 'post_list' %}">← Back</a>
+
+    <hr>
+
+    <!--Comments-->
+    <h4>Comments ({{comments.count}})</h4>
+
+    <ul class="list-group mb-3">
+        {% for comment in comments %}
+        <li class="list-group-item">
+            <strong>{{ comment.author }}</strong> - {{ comment.created_at }}
+            <div class="markdown-body mb-2">{{ comment.get_markdown }}</div>
+
+            {% if user == comment.author %}
+                <a href="{% url 'edit_comment' comment.id %}">Edit</a> |
+                <a href="{% url 'delete_comment' comment.id %}" class="text-danger"
+                    onclick="return confirm('Are you sure you want to delete this comment?');">Delete</a>
+            {% endif %}
+        </li>
+    {% empty %}
+        <li class="list-group-item">No comments</li>
+    {% endfor %}
+    </ul>
+
+    <!--Add the comment-->
+    {% if user.is_authenticated %}
+        <h5>Add comment</h5>
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" name="comment_submit" class="btn btn-primary">Send</button>
+        </form>
+    {% else %}
+        <p><a href="{% url 'login' %}">Enter</a> to leave a comment</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}

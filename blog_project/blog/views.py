@@ -40,7 +40,7 @@ def post_list(request):
     else:
         posts = posts.order_by('-created_at')
 
-    paginator = Paginator(posts, 5)  # 5 posts per page
+    paginator = Paginator(posts, 6)  # 6 posts per page
     page_number = request.GET.get('page')
     posts = paginator.get_page(page_number)
 
@@ -172,26 +172,6 @@ def delete_comment(request, comment_id):
         comment.delete()
         return redirect('post_detail', post_id=post_id)
     return redirect('post_list')
-
-
-@login_required
-def toggle_like(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    is_liked = False
-
-    if request.user in post.likes.all():
-        post.likes.remove(request.user)
-    else:
-        post.likes.add(request.user)
-        is_liked = True
-
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({
-            'is_liked': is_liked,
-            'total_likes': post.likes_count()
-        })
-
-    return redirect('post_detail', post_id=post.id)
 
 
 @login_required
