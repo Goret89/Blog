@@ -24,7 +24,26 @@
     </div>
 
     <!-- Title -->
-    <h1>{{ post.title }}</h1>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+
+        <h1 class="mb-0">
+            {{ post.title }}
+        </h1>
+
+        {% if user == post.author %}
+        <div class="d-flex gap-2">
+            <a href="{% url 'edit_post' post.id %}" class="btn btn-sm btn-outline-primary">
+                ✏️ Edit
+            </a>
+
+            <a href="{% url 'delete_post' post.id %}" class="btn btn-sm btn-outline-danger">
+                🗑️ Delete
+            </a>
+
+        </div>
+        {% endif %}
+
+    </div>
 
     <!-- The post content -->
     <div class="markdown-body mb-3">{{ post.get_markdown }}</div>
