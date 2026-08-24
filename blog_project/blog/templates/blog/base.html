@@ -25,7 +25,15 @@
                         <a href="{% url 'profile' user.username %}" class="text-white me-3">
                             {{ user.username }}
                         </a>
-                        <a href="/accounts/logout/" class="btn btn-sm btn-outline-light">Logout</a>
+
+                        <form method="post" action="{% url 'logout' %}" class="d-inline">
+                            {% csrf_token %}
+
+                            <button type="submit" class="btn btn-sm btn-outline-light">
+                                Logout
+                            </button>
+                        </form>
+d
                     {% else %}
                         <a href="/accounts/login/" class="btn btn-sm btn-outline-light me-2">Login</a>
                         <a href="{% url 'register' %}" class="btn btn-sm btn-light">Sign up</a>
