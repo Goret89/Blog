@@ -19,13 +19,29 @@
     <div class="d-flex align-items-center gap-2">
 
         <!-- Comment like-->
-        <button type="button" class="btn btn-sm comment-like-btn" data-comment-id="{{ comment.id }}">
+        <button
+            type="button"
+            class="btn btn-sm comment-vote-btn {% if comment.user_vote == 1 %}active-like{% endif %}"
+            data-comment-id="{{ comment.id }}"
+            data-value="1">
             👍
             <span id="comment-likes-{{ comment.id }}">
                 {{ comment.likes_count }}
             </span>
 
         </button>
+
+        <button
+            type="button"
+            class="btn btn-sm comment-vote-btn {% if comment.user_vote == -1 %}active-dislike{% endif %}"
+            data-comment-id="{{ comment.id }}"
+            data-value="-1">
+            👎
+            <span id="comment-dislikes-{{ comment.id }}">
+                {{ comment.dislikes_count }}
+            </span>
+        </button>
+
 
         <!-- Reply -->
         {% if user.is_authenticated %}

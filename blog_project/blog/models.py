@@ -46,12 +46,24 @@ class Comment(models.Model):
         return mark_safe(markdown.markdown(self.content))
 
     def likes_count(self):
-        return self.likes.count()
+        return self.votes.filter(value=1).count()
+
+    def dislikes_count(self):
+        return self.votes.filter(value=-1).count()
 
 
 class CommentLike(models.Model):
+    LIKE = 1
+    DISLIKE = -1
+
+    VALUE_CHOICES = (
+        (LIKE, 'Like'),
+        (DISLIKE, 'Dislike'),
+    )
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='likes')
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='votes')
+    value = models.SmallIntegerField(choices=VALUE_CHOICES)
 
     class Meta:
         constraints = [

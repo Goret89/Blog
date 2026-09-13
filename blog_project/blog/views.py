@@ -9,7 +9,7 @@ from .forms import CommentForm
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.http import HttpResponseForbidden
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Prefetch
 
 
 # Create your views here.
@@ -49,14 +49,20 @@ def post_list(request):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    comments = post.comments.filter(parent=None).prefetch_related('author', 'replies__author', 'likes').order_by('-created_at')
+    comments = post.comments.filter(parent=None).prefetch_related('author', 'replies__author', 'votes').order_by('-created_at')
     form = CommentForm()
     comments_count = post.comments.count()
 
     user_vote = None
+
     if request.user.is_authenticated:
-        vote = post.votes.filter(user=request.user).first()
-        user_vote = vote.value if vote else None
+        for comment in comments:
+            vote = post.votes.filter(user=request.user).first()
+            comment.user_vote = vote.value if vote else None
+
+            for reply in comment.replies.all():
+                vote = reply.votes.filter(user=request.user).first()
+                reply.user_vote = vote.value if vote else None
 
     if request.method == 'POST':
 
@@ -217,7 +223,7 @@ def vote_view(request, post_id):
     })
 
 
-def comment_like_view(request, comment_id):
+def comment_vote_view(request, comment_id):
     if request.method != 'POST':
         return JsonResponse(
             {'error': 'POST request required'},
@@ -225,14 +231,36 @@ def comment_like_view(request, comment_id):
         )
 
     comment = get_object_or_404 (Comment, id=comment_id)
-    like, created = CommentLike.objects.get_or_create(user=request.user, comment=comment)
+
+    value = int(request.POST.get('value'))
+
+    if value not in (1, -1):
+        return JsonResponse(
+            {'error': 'Invalid vote value'},
+            status=400
+        )
+
+    vote, created = CommentLike.objects.get_or_create(
+        user=request.user,
+        comment=comment,
+        defaults={'value': value}
+        )
 
     if not created:
-        like.delete()
+        if vote.value == value:
+            vote.delete()
+            user_vote = None
+        else:
+            vote.value = value
+            vote.save()
+            user_vote = value
+    else:
+        user_vote = value
 
     return JsonResponse({
         'likes': comment.likes_count(),
-        'user_liked': created
+        'dislikes': comment.dislikes_count(),
+        'user_vote': user_vote
     })
 
 
