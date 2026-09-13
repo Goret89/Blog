@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Post, Comment, Vote, Profile
+from .models import Post, Comment, Vote, Profile, CommentLike
 from .forms import PostForm, ProfileForm
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -49,8 +49,9 @@ def post_list(request):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    comments = post.comments.all().order_by('-created_at')
+    comments = post.comments.filter(parent=None).prefetch_related('author', 'replies__author', 'likes').order_by('-created_at')
     form = CommentForm()
+    comments_count = post.comments.count()
 
     user_vote = None
     if request.user.is_authenticated:
@@ -58,13 +59,22 @@ def post_detail(request, post_id):
         user_vote = vote.value if vote else None
 
     if request.method == 'POST':
+
         if 'comment_submit' in request.POST:
             form = CommentForm(request.POST)
+
             if form.is_valid():
                 comment = form.save(commit=False)
                 comment.post = post
                 comment.author = request.user
+                parent_id = request.POST.get('parent_id')
+
+                if parent_id:
+                    parent = get_object_or_404(Comment, id=parent_id, post=post)
+                    comment.parent = parent
+
                 comment.save()
+
                 return redirect('post_detail', post_id=post.id)
 
         elif 'vote' in request.POST:
@@ -92,6 +102,7 @@ def post_detail(request, post_id):
         'user_vote': user_vote,
         'total_likes': post.likes_count(),
         'total_dislikes': post.dislikes_count(),
+        'comments_count': comments_count
     })
 
 
@@ -204,6 +215,26 @@ def vote_view(request, post_id):
         'dislikes': post.dislikes_count(),
         'user_vote': user_vote
     })
+
+
+def comment_like_view(request, comment_id):
+    if request.method != 'POST':
+        return JsonResponse(
+            {'error': 'POST request required'},
+            status=405
+        )
+
+    comment = get_object_or_404 (Comment, id=comment_id)
+    like, created = CommentLike.objects.get_or_create(user=request.user, comment=comment)
+
+    if not created:
+        like.delete()
+
+    return JsonResponse({
+        'likes': comment.likes_count(),
+        'user_liked': created
+    })
+
 
 def profile_view(request, username):
     user = get_object_or_404(User, username=username)
