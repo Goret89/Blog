@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Post, Comment, Vote, Profile
+from .models import Post, Comment, Vote, Profile, CommentLike
 from .forms import PostForm, ProfileForm
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -9,7 +9,7 @@ from .forms import CommentForm
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.http import HttpResponseForbidden
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Prefetch
 
 
 # Create your views here.
@@ -49,22 +49,38 @@ def post_list(request):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    comments = post.comments.all().order_by('-created_at')
+    comments = post.comments.filter(parent=None).prefetch_related('author', 'replies__author', 'votes').order_by('-created_at')
     form = CommentForm()
+    comments_count = post.comments.count()
 
     user_vote = None
+
     if request.user.is_authenticated:
-        vote = post.votes.filter(user=request.user).first()
-        user_vote = vote.value if vote else None
+        for comment in comments:
+            vote = post.votes.filter(user=request.user).first()
+            comment.user_vote = vote.value if vote else None
+
+            for reply in comment.replies.all():
+                vote = reply.votes.filter(user=request.user).first()
+                reply.user_vote = vote.value if vote else None
 
     if request.method == 'POST':
+
         if 'comment_submit' in request.POST:
             form = CommentForm(request.POST)
+
             if form.is_valid():
                 comment = form.save(commit=False)
                 comment.post = post
                 comment.author = request.user
+                parent_id = request.POST.get('parent_id')
+
+                if parent_id:
+                    parent = get_object_or_404(Comment, id=parent_id, post=post)
+                    comment.parent = parent
+
                 comment.save()
+
                 return redirect('post_detail', post_id=post.id)
 
         elif 'vote' in request.POST:
@@ -92,6 +108,7 @@ def post_detail(request, post_id):
         'user_vote': user_vote,
         'total_likes': post.likes_count(),
         'total_dislikes': post.dislikes_count(),
+        'comments_count': comments_count
     })
 
 
@@ -204,6 +221,48 @@ def vote_view(request, post_id):
         'dislikes': post.dislikes_count(),
         'user_vote': user_vote
     })
+
+
+def comment_vote_view(request, comment_id):
+    if request.method != 'POST':
+        return JsonResponse(
+            {'error': 'POST request required'},
+            status=405
+        )
+
+    comment = get_object_or_404 (Comment, id=comment_id)
+
+    value = int(request.POST.get('value'))
+
+    if value not in (1, -1):
+        return JsonResponse(
+            {'error': 'Invalid vote value'},
+            status=400
+        )
+
+    vote, created = CommentLike.objects.get_or_create(
+        user=request.user,
+        comment=comment,
+        defaults={'value': value}
+        )
+
+    if not created:
+        if vote.value == value:
+            vote.delete()
+            user_vote = None
+        else:
+            vote.value = value
+            vote.save()
+            user_vote = value
+    else:
+        user_vote = value
+
+    return JsonResponse({
+        'likes': comment.likes_count(),
+        'dislikes': comment.dislikes_count(),
+        'user_vote': user_vote
+    })
+
 
 def profile_view(request, username):
     user = get_object_or_404(User, username=username)
