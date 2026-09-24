@@ -3,7 +3,7 @@
 
 {% block content %}
 
-<div class="card shadow-lg p-5 border-0">
+<div id="post-page" data-post-id="{{ post.id }}" class="card shadow-lg p-5 border-0">
 
     <!-- Author -->
     <div class="d-flex align-items-center mb-4">
@@ -84,35 +84,9 @@
     <hr>
 
     <!--Comments-->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">
-            Comments
-        </h4>
-
-        <span class="badge bg-secondary">
-            {{comments_count}}
-        </span>
+    <div id="comments-container">
+        {% include 'blog/comments_fragment.html' %}
     </div>
-
-    {% if comments %}
-
-        <div class="list-group mb-4">
-
-            {% for comment in comments %}
-
-                {% include 'blog/comment.html' with comment=comment %}
-
-            {% endfor %}
-
-        </div>
-
-    {% else %}
-
-        <div class="text-muted border rounded p-3 mb-4">
-            No comments
-        </div>
-
-    {% endif %}
 
     <!--Add the comment-->
     {% if user.is_authenticated %}

@@ -10,6 +10,7 @@ services:
       - ./blog_project:/app
     depends_on:
       - db
+      - redis
     environment:
       - DEBUG=1
       - DJANGO_DB_HOST=db
@@ -26,6 +27,9 @@ services:
       POSTGRES_DB: blog
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+  
+  redis:
+    image: redis:7-alpine
 
 volumes:
   postgres_data:

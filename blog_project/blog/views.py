@@ -10,6 +10,7 @@ from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.http import HttpResponseForbidden
 from django.db.models import Count, Q, Prefetch
+from .realtime import broadcast_post_event
 
 
 # Create your views here.
@@ -80,6 +81,13 @@ def post_detail(request, post_id):
                     comment.parent = parent
 
                 comment.save()
+
+                broadcast_post_event(
+                    post.id,
+                    'comments_changed',
+                    comment_id=comment.id,
+                    action='created',
+                )
 
                 return redirect('post_detail', post_id=post.id)
 
@@ -169,15 +177,27 @@ def delete_post(request, post_id):
 @login_required
 def edit_comment(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
+
     if request.user != comment.author:
         return HttpResponseForbidden()
+
     if request.method == "POST":
         form = CommentForm(request.POST, instance=comment)
+
         if form.is_valid():
             form.save()
+
+            broadcast_post_event(
+                comment.post.id,
+                'comments_changed',
+                comment_id=comment.id,
+                action='updated',
+            )
+
             return redirect('post_detail', post_id=comment.post.id)
     else:
         form = CommentForm(instance=comment)
+
     return render(request, 'blog/edit_comment.html', {'form': form})
 
 
@@ -186,8 +206,19 @@ def delete_comment(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
     if request.user == comment.author:
         post_id = comment.post.id
+        comment_id= comment.id
+
         comment.delete()
+
+        broadcast_post_event(
+            post_id,
+            'comments_changed',
+            comment_id=comment_id,
+            action='deleted',
+        )
+
         return redirect('post_detail', post_id=post_id)
+
     return redirect('post_list')
 
 
@@ -207,22 +238,33 @@ def vote_view(request, post_id):
     if not created:
         if vote.value == value:
             vote.delete()
-            user_vote = None
         else:
             vote.value = value
             vote.save()
+
             user_vote = value
     
     else:
         user_vote = value
 
+    likes = post.likes_count()
+    dislikes = post.dislikes_count()
+
+    broadcast_post_event(
+        post.id,
+        'post_vote_changed',
+        likes=likes,
+        dislikes=dislikes,
+    )
+
     return JsonResponse({
-        'likes': post.likes_count(),
-        'dislikes': post.dislikes_count(),
-        'user_vote': user_vote
+        'likes': likes,
+        'dislikes': dislikes,
+        'user_vote': user_vote,
     })
 
 
+@login_required
 def comment_vote_view(request, comment_id):
     if request.method != 'POST':
         return JsonResponse(
@@ -257,10 +299,21 @@ def comment_vote_view(request, comment_id):
     else:
         user_vote = value
 
+    likes = comment.likes_count()
+    dislikes = comment.dislikes_count()
+
+    broadcast_post_event(
+        comment.post_id,
+        'comment_vote_changed',
+        comment_id=comment.id,
+        likes=likes,
+        dislikes=dislikes,
+    )
+
     return JsonResponse({
-        'likes': comment.likes_count(),
-        'dislikes': comment.dislikes_count(),
-        'user_vote': user_vote
+        'likes': likes,
+        'dislikes': dislikes,
+        'user_vote': user_vote,
     })
 
 
@@ -289,3 +342,53 @@ def edit_profile(request):
         form = ProfileForm(instance=profile)
 
     return render(request, 'blog/edit_profile.html', {'form': form})
+
+def _get_post_comments(request, post):
+    comments = list(
+        post.comments
+        .filter(parent=None)
+        .select_related('author')
+        .prefetch_related(
+            'votes',
+            'replies__author',
+            'replies__votes',
+        )
+        .order_by('-created_at')
+    )
+
+    if request.user.is_authenticated:
+        for comment in comments:
+            comment.user_vote=next(
+                (
+                    vote.value
+                    for vote in comment.votes.all()
+                    if vote.user_id == request.user.id
+                ),
+                None,
+            )
+
+            for reply in comment.replies.all():
+                reply.user_vote = next(
+                    (
+                        vote.value
+                        for vote in reply.votes.all()
+                        if vote.user_id == request.user.id
+                    ),
+                    None,
+                )
+
+    return comments
+
+def comments_fragment(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+
+    comments = _get_post_comments(request, post)
+
+    return render(
+        request,
+        'blog/comments_fragment.html',
+        {
+            'comments': comments,
+            'comments_count': post.comments.count(),
+        },
+    )

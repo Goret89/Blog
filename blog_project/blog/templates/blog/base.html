@@ -33,7 +33,7 @@
                                 Logout
                             </button>
                         </form>
-d
+
                     {% else %}
                         <a href="/accounts/login/" class="btn btn-sm btn-outline-light me-2">Login</a>
                         <a href="{% url 'register' %}" class="btn btn-sm btn-light">Sign up</a>
@@ -49,6 +49,7 @@ d
         {% load static %}
         <script src="{% static 'blog/js/votes.js' %}"></script>
         <script src="{% static 'blog/js/comments.js' %}"></script>
+        <script src="{% static 'blog/js/realtime.js' %}"></script>
 
     </body>
 </html>
